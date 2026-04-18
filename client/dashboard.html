@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — India Relief Connect</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">🇮🇳 India Relief Connect</a>
+        <div class="nav-links">
+            <a href="index.html">Explore</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <h2 id="welcome-msg" class="section-title">Dashboard</h2>
+                <p style="color: var(--text-muted); margin-top: 0.25rem;" id="welcome-sub"></p>
+            </div>
+        </div>
+
+        <!-- NEEDY SECTION -->
+        <div id="needy-section" style="display: none;">
+            <div class="section-header" style="margin-top: 1rem;">
+                <h3 style="font-weight: 700; color: var(--dark);">📋 My Help Requests</h3>
+                <a href="request.html" class="btn btn-primary">+ Create Request</a>
+            </div>
+            <div id="my-requests-grid" class="grid"></div>
+        </div>
+
+        <!-- DONOR SECTION -->
+        <div id="donor-section" style="display: none;">
+            <h3 style="font-weight: 700; color: var(--dark); margin-bottom: 0.5rem;">💝 My Donation History</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Track all the lives you've helped change.</p>
+            <div id="my-donations-grid" class="grid"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!user) window.location.href = 'login.html';
+        
+        document.getElementById('welcome-msg').innerText = `Welcome, ${user.name} 👋`;
+        
+        if (user.role === 'needy') {
+            document.getElementById('welcome-sub').innerText = 'Manage your help requests and track donations received.';
+            document.getElementById('needy-section').style.display = 'block';
+            fetchMyRequests();
+        } else if (user.role === 'donor') {
+            document.getElementById('welcome-sub').innerText = 'Track your donations and discover more causes to support.';
+            document.getElementById('donor-section').style.display = 'block';
+            fetchMyDonations();
+        }
+
+        async function fetchMyRequests() {
+            try {
+                const res = await fetch(`${API_URL}/requests/my/requests`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                const grid = document.getElementById('my-requests-grid');
+                grid.innerHTML = '';
+
+                if (data.length === 0) {
+                    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><p>No requests yet. Create one to get started!</p></div>';
+                    return;
+                }
+
+                data.forEach(req => {
+                    const progress = Math.min((req.collectedAmount / req.requiredAmount) * 100, 100);
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="card-title">${req.title}</div>
+                        <div class="card-meta">
+                            ${getCategoryBadge(req.category)}
+                            ${getStatusBadge(req.status)}
+                            <span>📍 ${req.location.city}, ${req.location.state}</span>
+                        </div>
+                        <div class="card-description">${req.description}</div>
+                        <div class="card-amount">
+                            <span class="card-amount-collected">${formatCurrency(req.collectedAmount)}</span>
+                            <span class="card-amount-target">of ${formatCurrency(req.requiredAmount)}</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%"></div></div>
+                        <span class="progress-percentage">${progress.toFixed(0)}% funded</span>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch(e) { 
+                console.error(e); 
+                showToast('Could not load requests', 'error');
+            }
+        }
+
+        async function fetchMyDonations() {
+            try {
+                const res = await fetch(`${API_URL}/donations/my/history`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                const grid = document.getElementById('my-donations-grid');
+                grid.innerHTML = '';
+
+                if (data.length === 0) {
+                    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💝</div><p>No donations yet. <a href="index.html" style="color: var(--primary);">Browse causes</a> to make your first donation!</p></div>';
+                    return;
+                }
+
+                data.forEach(don => {
+                    const card = document.createElement('div');
+                    card.className = 'card donation-card';
+                    card.innerHTML = `
+                        <div class="card-title" style="color: var(--secondary);">${formatCurrency(don.amount)}</div>
+                        <div class="card-meta">
+                            <span>🎯 ${don.request ? don.request.title : 'Unknown Request'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                            ${getStatusBadge(don.status)}
+                            <span style="font-size: 0.8rem; color: var(--text-light);">${new Date(don.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch(e) { 
+                console.error(e); 
+                showToast('Could not load donation history', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

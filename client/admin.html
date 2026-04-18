@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — India Relief Connect</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">🇮🇳 India Relief Connect <span style="font-size: 0.75rem; background: var(--danger); color: white; padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.5rem;">ADMIN</span></a>
+        <div class="nav-links">
+            <a href="index.html">View Site</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">🛡️ Request Verification</h2>
+                <p style="color: var(--text-muted); margin-top: 0.25rem;">Review, approve, or reject help requests before they go live.</p>
+            </div>
+            <span id="pending-count" class="badge badge-status-pending" style="font-size: 1rem; padding: 0.5rem 1rem;"></span>
+        </div>
+
+        <div id="admin-grid" class="grid"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!user || user.role !== 'admin') {
+            showToast('Admin access required', 'error');
+            setTimeout(() => window.location.href = 'index.html', 1000);
+        }
+
+        async function fetchPending() {
+            try {
+                const res = await fetch(`${API_URL}/admin/requests/pending`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                const grid = document.getElementById('admin-grid');
+                grid.innerHTML = '';
+
+                document.getElementById('pending-count').innerText = `${data.length} Pending`;
+
+                if (data.length === 0) {
+                    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>All caught up! No pending requests to review.</p></div>';
+                    return;
+                }
+
+                data.forEach(req => {
+                    const card = document.createElement('div');
+                    card.className = 'card admin-card';
+                    card.innerHTML = `
+                        <div class="card-title">${req.title}</div>
+                        <div class="card-meta">
+                            ${getCategoryBadge(req.category)}
+                            <span>👤 ${req.user.name} (${req.user.email})</span>
+                        </div>
+                        <div class="card-meta">
+                            <span>📍 ${req.location.city}, ${req.location.state}</span>
+                        </div>
+                        <div class="card-description" style="-webkit-line-clamp: 5; line-clamp: 5;">${req.description}</div>
+                        <div style="font-weight: 700; font-size: 1.1rem; color: var(--primary); margin: 0.75rem 0;">
+                            Needs: ${formatCurrency(req.requiredAmount)}
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-secondary" onclick="updateStatus('${req._id}', 'approved')">✅ Approve</button>
+                            <button class="btn btn-danger" onclick="updateStatus('${req._id}', 'rejected')">❌ Reject</button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch(e) { 
+                console.error(e); 
+                showToast('Could not load pending requests', 'error');
+            }
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                await fetch(`${API_URL}/admin/requests/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                showToast(`Request ${status} successfully! ${status === 'approved' ? '✅' : '❌'}`, status === 'approved' ? 'success' : 'info');
+                fetchPending();
+            } catch(e) {
+                showToast('Action failed', 'error');
+            }
+        }
+
+        fetchPending();
+    </script>
+</body>
+</html>

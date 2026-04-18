@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Request — India Relief Connect</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">🇮🇳 India Relief Connect</a>
+        <div class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 640px;">
+        <div style="margin-bottom: 2rem;">
+            <h2 class="section-title">Create a Relief Request</h2>
+            <p style="color: var(--text-muted); margin-top: 0.25rem;">Fill in the details below. Your request will be reviewed by admins before going live.</p>
+        </div>
+
+        <div class="card" style="padding: 2rem;">
+            <form id="request-form">
+                <div class="form-group">
+                    <label>🏷️ Title</label>
+                    <input type="text" id="title" class="form-control" placeholder="e.g., Medical fund for heart surgery" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>📂 Category</label>
+                        <select id="category" class="form-control" required>
+                            <option value="Medical">🏥 Medical</option>
+                            <option value="Accident">🚗 Accident</option>
+                            <option value="Disaster">🌊 Disaster</option>
+                            <option value="Food">🍚 Food</option>
+                            <option value="Water">💧 Water</option>
+                            <option value="Other">📋 Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>💰 Required Amount (₹)</label>
+                        <input type="number" id="requiredAmount" class="form-control" placeholder="e.g., 500000" min="1000" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>🗺️ State</label>
+                        <input type="text" id="state" class="form-control" placeholder="e.g., Maharashtra" required>
+                    </div>
+                    <div class="form-group">
+                        <label>🏙️ City</label>
+                        <input type="text" id="city" class="form-control" placeholder="e.g., Mumbai" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        📝 Description
+                        <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.8rem;" onclick="enhanceText()">✨ AI Enhance</button>
+                    </label>
+                    <textarea id="description" class="form-control" rows="5" required placeholder="Describe your situation in detail. The more information you provide, the better donors can understand your needs..."></textarea>
+                    <p style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.375rem;">Tip: Click "✨ AI Enhance" to improve your description automatically.</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem;">Submit for Admin Approval</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!user || user.role !== 'needy') {
+            showToast('Only seekers can create requests', 'error');
+            setTimeout(() => window.location.href = 'index.html', 1000);
+        }
+
+        async function enhanceText() {
+            const title = document.getElementById('title').value;
+            const category = document.getElementById('category').value;
+            const desc = document.getElementById('description').value;
+
+            if (!title) { showToast('Please enter a title first', 'info'); return; }
+
+            const btn = document.querySelector('.btn-secondary');
+            btn.innerText = '⏳ Enhancing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/ai/enhance-description`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, category, keywords: desc })
+                });
+                const data = await res.json();
+                document.getElementById('description').value = data.enhancedText;
+                showToast('Description enhanced by AI! ✨', 'success');
+            } catch (err) {
+                showToast('AI Service unavailable', 'error');
+            } finally {
+                btn.innerText = '✨ AI Enhance';
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('request-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const payload = {
+                title: document.getElementById('title').value,
+                category: document.getElementById('category').value,
+                requiredAmount: document.getElementById('requiredAmount').value,
+                state: document.getElementById('state').value,
+                city: document.getElementById('city').value,
+                description: document.getElementById('description').value
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/requests`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if(!res.ok) throw new Error('Submission failed');
+                
+                showToast('Request submitted! Pending admin approval. 📋', 'success');
+                setTimeout(() => window.location.href = 'dashboard.html', 1000);
+            } catch(e) {
+                showToast(e.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
