@@ -1,6 +1,6 @@
 # Donations Web Platform (India Relief Connect)
 
-A final year full stack web application to connect donors directly with people in need of assistance across India.
+full stack web application to connect donors directly with people in need of assistance across India.
 
 ## Tech Stack
 - **Frontend**: Vanilla HTML, CSS, JavaScript
@@ -60,7 +60,7 @@ Due to standard system network restrictions during testing, the platform has bee
 ## Sample Test Data & Workflow
 1. **Signup as Admin**: Open `signup.html`, choose "Admin (For Testing)" role. Login.
 2. **Signup as Needy**: Open `signup.html` again, choose "Needy" role. Login as needy.
-3. **Create Request**: Navigate to Dashboard as needy, click "Create New Request". Use the "✨ AI Enhance" button to create a good description. Submit.
+3. **Create Request**: Navigate to Dashboard as needy, click "Create New Request". Use the "AI Enhance" button to create a good description. Submit.
 4. **Approve Request**: Switch back to Admin account, go to `admin.html`, and Approve the request.
 5. **Donate**: Signup as "Donor", browse the feed at `index.html`. Click "Donate Now". You can pick QR code or Gateway button.
 6. **Chatbot**: Try the Chat widget at the bottom right by asking "Are donations tax exempt?"
